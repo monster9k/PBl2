@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build SDL2",
+      "type": "shell",
+      "command": "g++",
+      "args": [
+        "-I",
+        "external/SDL2/include",
+        "-L",
+        "external/SDL2/lib",
+        "-o",
+        "src/render/renderSDL.exe",
+        "src/render/renderSDL.cpp",
+        "-lmingw32",
+        "-lSDL2main",
+        "-lSDL2"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
