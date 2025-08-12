@@ -1,78 +1,132 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <iostream>
-#include <cmath>
+#include <vector>
+#include <fstream>
+#include <string>
+#include "../core/Drone.h"
 
-// Hàm vẽ pixel
-void drawPixel(SDL_Renderer* renderer, int x, int y) {
-    SDL_RenderDrawPoint(renderer, x, y);
+using namespace std;
+
+bool isInside(int x, int y, SDL_Rect rect)
+{
+    return (x > rect.x && x < rect.x + rect.w &&
+            y > rect.y && y < rect.y + rect.h);
 }
 
-// Hàm vẽ hình tròn
-void drawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
-    int x = radius;
-    int y = 0;
-    int err = 0;
-
-    while (x >= y) {
-        drawPixel(renderer, centerX + x, centerY + y);
-        drawPixel(renderer, centerX + y, centerY + x);
-        drawPixel(renderer, centerX - y, centerY + x);
-        drawPixel(renderer, centerX - x, centerY + y);
-        drawPixel(renderer, centerX - x, centerY - y);
-        drawPixel(renderer, centerX - y, centerY - x);
-        drawPixel(renderer, centerX + y, centerY - x);
-        drawPixel(renderer, centerX + x, centerY - y);
-
-        if (err <= 0) {
-            y += 1;
-            err += 2*y + 1;
-        }
-        if (err > 0) {
-            x -= 1;
-            err -= 2*x + 1;
-        }
-    }
-}
-
-int main(int argc, char* argv[]) {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        std::cout << "SDL_Init Error: " << SDL_GetError() << std::endl;
-        return 1;
+int main(int argc, char *argv[])
+{
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    {
+        std::cout << "SDL Init Error: " << SDL_GetError() << std::endl;
+        return -1;
     }
 
-    SDL_Window* win = SDL_CreateWindow("Vẽ Hình Tròn SDL2",
-                                       SDL_WINDOWPOS_CENTERED,
-                                       SDL_WINDOWPOS_CENTERED,
-                                       640, 480,
-                                       SDL_WINDOW_SHOWN);
-    if (!win) {
-        std::cout << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
+    if (TTF_Init() < 0)
+    {
+        std::cout << "TTF Init Error: " << TTF_GetError() << std::endl;
         SDL_Quit();
-        return 1;
+        return -1;
     }
 
-    SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Window *window = SDL_CreateWindow("Drone Viewer",
+                                          SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                          800, 600, 0);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    // Tô nền trắng
-    SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
-    SDL_RenderClear(ren);
+    if (!window || !renderer)
+    {
+        std::cout << "Window or Renderer creation failed\n";
+        TTF_Quit();
+        SDL_Quit();
+        return -1;
+    }
 
-    // Đặt màu đỏ để vẽ
-    SDL_SetRenderDrawColor(ren, 255, 0, 0, 255);
-    drawCircle(ren, 320, 240, 100); // vẽ hình tròn tâm (320,240), bán kính 100
+    // Đọc drone từ file
+    std::vector<Drone> drones = readDronesFromFile("D:/SDL2-project/data/Drone.txt");
+    if (drones.empty())
+    {
+        std::cout << "No drones loaded.\n";
+    }
 
-    SDL_RenderPresent(ren);
+    // Mở font
+    const char *fontPath = "C:/Windows/Fonts/arial.ttf"; // đổi sang font bạn có
+    TTF_Font *font = TTF_OpenFont(fontPath, 14);
+    if (!font)
+    {
+        std::cout << "Font Error: " << TTF_GetError() << std::endl;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_Quit();
+        SDL_Quit();
+        return -1;
+    }
 
+    bool running = true;
     SDL_Event e;
-    bool quit = false;
-    while (!quit) {
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) quit = true;
+    int selectedDroneIndex = -1;
+
+    while (running)
+    {
+        while (SDL_PollEvent(&e))
+        {
+            if (e.type == SDL_QUIT)
+                running = false;
+            if (e.type == SDL_MOUSEBUTTONDOWN)
+            {
+                int mouseX = e.button.x;
+                int mouseY = e.button.y;
+
+                for (int i = 0; i < drones.size(); i++)
+                {
+                    auto pos = drones[i].getPos();
+                    SDL_Rect rect = {pos.first, pos.second, 20, 20};
+                    if (isInside(mouseX, mouseY, rect))
+                    {
+                        selectedDroneIndex = i;
+                    }
+                }
+            }
         }
+
+        // Xóa màn hình
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        // Vẽ drone và ID
+        for (int i = 0; i < drones.size(); i++)
+        {
+            auto pos = drones[i].getPos();
+            SDL_Rect rect = {pos.first, pos.second, 20, 20};
+
+            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+            SDL_RenderFillRect(renderer, &rect);
+
+            // Nếu drone này đang được chọn → vẽ ID
+            if (i == selectedDroneIndex)
+            {
+                SDL_Color white = {255, 255, 255, 255};
+                SDL_Surface *textSurf = TTF_RenderUTF8_Blended(font, drones[i].getId().c_str(), white);
+                SDL_Texture *textTex = SDL_CreateTextureFromSurface(renderer, textSurf);
+
+                SDL_Rect textRect = {pos.first, pos.second - 18, textSurf->w, textSurf->h};
+                SDL_RenderCopy(renderer, textTex, nullptr, &textRect);
+
+                SDL_FreeSurface(textSurf);
+                SDL_DestroyTexture(textTex);
+            }
+        }
+
+        SDL_RenderPresent(renderer);
+        SDL_Delay(16);
     }
 
-    SDL_DestroyRenderer(ren);
-    SDL_DestroyWindow(win);
+    // Cleanup
+    TTF_CloseFont(font);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    TTF_Quit();
     SDL_Quit();
+
     return 0;
 }
