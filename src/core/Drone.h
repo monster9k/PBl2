@@ -6,7 +6,7 @@ using namespace std;
 
 class Drone
 {
-private: 
+protected:
     string id;
     string type;
     pair<int, int> pos;
@@ -18,7 +18,7 @@ public:
     Drone();
     string getId() const;
     string getType() const;
-    pair<int, int> getPos()const;
+    pair<int, int> getPos() const;
     float getBattery() const;
     float getSpeed() const;
     string getIsOpStatus() const;
@@ -31,9 +31,12 @@ public:
     void setIsOp(string isOp);
 
     void showAllData();
+
     ~Drone();
 
     // TODO: Thuộc tính & phương thức điều khiển drone
 };
 
-vector<Drone> readDronesFromFile(const string& filename);
+void saveDroneToFile(const Drone &drone);
+
+vector<Drone> readDronesFromFile(const string &filename);

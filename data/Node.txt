@@ -1,0 +1,4 @@
+N1 200 200 Central
+N2 150 250 ZoneA
+N3 300 200 ZoneB
+N4 200 100 ZoneA

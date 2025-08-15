@@ -1,27 +1,8 @@
 DR001 DJI-MA 10 20 85.5 12.3 true
-DR002 DJI-M2 100 300 60.0 9.5 false
-DR003 ANA 15 150 45.0 11.0 true
+DR002 DJI-M2 20 100 60.0 9.5 false
+DR003 ANA 24 170 45.0 11.0 true
+DR004 DJI 100 100 100 10.9 true
 
+DR005 DJI-M2 200 300 90 11.9 false
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ndsdsdsdsdssd DJI-M2 200 300 90 11.9 false

@@ -13,11 +13,15 @@
         "-o",
         "src/render/renderSDL.exe",
         "src/render/renderSDL.cpp",
+        "src/render/renderUtils.cpp",
         "src/core/Drone.cpp",
+        "src/core/Node.cpp",
+        "src/core/Edge.cpp",
         "-lmingw32",
         "-lSDL2main",
         "-lSDL2",
-        "-lSDL2_ttf"
+        "-lSDL2_ttf",
+        "-lSDL2_image"
       ],
       "group": {
         "kind": "build",

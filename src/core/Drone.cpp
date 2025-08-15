@@ -9,8 +9,6 @@ Drone::Drone()
 {
 }
 
-/// get
-
 string Drone::getId() const
 {
     return this->id;
@@ -85,12 +83,12 @@ void Drone::showAllData()
 
 Drone::~Drone() {}
 
-
-vector<Drone> readDronesFromFile(const string& filename)
+vector<Drone> readDronesFromFile(const string &filename)
 {
     ifstream file(filename);
     vector<Drone> drones;
-    if (!file) {
+    if (!file)
+    {
         cerr << "Error: Cannot open file\n";
         return drones;
     }
@@ -110,8 +108,27 @@ vector<Drone> readDronesFromFile(const string& filename)
         temp.setIsOp(isOp);
         drones.push_back(temp);
     }
+    file.close();
     return drones;
 }
 
+void saveDroneToFile(const Drone &drone)
+{
+    ofstream file("D:/SDL2-project/data/Drone.txt", ios::app);
+    file << drone.getId() << " " << drone.getType() << " " << drone.getPos().first << " " << drone.getPos().second << " " << drone.getBattery() << " " << drone.getSpeed() << " " << drone.getIsOpStatus() << "\n";
+    file.close();
+}
 
+// int main()
+// {
+//     Drone newDrone;
 
+// newDrone.setId("DR005");
+// newDrone.setType("DJI-M2");
+// newDrone.setPos(200, 300);
+// newDrone.setBattery(90.0f);
+// newDrone.setSpeed(11.9f);
+// newDrone.setIsOp("false");
+
+//     saveDroneToFile(newDrone);
+// }
