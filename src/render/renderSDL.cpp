@@ -8,7 +8,10 @@
 #include "../core/Drone.h"
 #include "../core/Node.h"
 #include "../core/Edge.h"
+#include "../core/Graph.h"
+#include "../algorithms/DijkstraPathFinder.h"
 #include "renderUtils.h"
+#include <ctime>
 using namespace std;
 
 int main(int argc, char *argv[])
@@ -39,34 +42,38 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    // loard anh
-    SDL_Surface *imgSurface = IMG_Load("D:/SDL2-project/assets/nutmorong1.png"); // <-- đổi thành tên file ảnh của bạn
-    if (!imgSurface)
-    {
-        std::cout << "IMG_Load Error: " << IMG_GetError() << std::endl;
-        return 1;
-    }
-
-    SDL_Texture *imgTexture = SDL_CreateTextureFromSurface(renderer, imgSurface);
-    SDL_FreeSurface(imgSurface);
-
     // lay kich thuoc anh
-    int imgW, imgH;
-    SDL_QueryTexture(imgTexture, NULL, NULL, &imgW, &imgH);
+    int imgW, imgH, imgDroneW, imgDroneH, imgNodeW, imgNodeH, imgRunDroneH, imgRunDroneW, imgNoDroneW, imgNoDroneH;
 
-    // lay kich thuoc window render
     int winW, winH;
+    // loard ảnh mo rong button
+    SDL_Texture *img1 = loadTexture(renderer, "D:/SDL2-project/assets/nutmorong1.png", imgW, imgH);
+    SDL_Texture *img2 = loadTexture(renderer, "D:/SDL2-project/assets/drone.png", imgDroneW, imgDroneH);
+    SDL_Texture *img3 = loadTexture(renderer, "D:/SDL2-project/assets/node.png", imgNodeW, imgNodeH);
+    SDL_Texture *img4 = loadTexture(renderer, "D:/SDL2-project/assets/runDrone.png", imgRunDroneW, imgRunDroneH);
+    SDL_Texture *img5 = loadTexture(renderer, "D:/SDL2-project/assets/nodrone.png", imgNoDroneW, imgNoDroneH);
+    SDL_Surface *cursorSurface = IMG_Load("D:/SDL2-project/assets/drone.png");
+    SDL_Cursor *droneCursor = SDL_CreateColorCursor(cursorSurface, 0, 0);
+    // lay kich thuoc window render
+
     SDL_GetWindowSize(window, &winW, &winH);
 
-    //  file drones
+    //  khai bao bien
     vector<Drone> drones = readDronesFromFile("D:/SDL2-project/data/Drone.txt");
-    if (drones.empty())
-    {
-        std::cout << "No drones loaded.\n";
-    }
-
     NodeData nodeData = readAllNodeFromFile("D:/SDL2-project/data/Node.txt");
     vector<Edge *> edges = readAllEdgeFromFile("D:/SDL2-project/data/Edge.txt", nodeData.nodeMap);
+    // Ví dụ path: N1 -> N2 -> N7
+    // vector<Node *> fakePath;
+    // fakePath.push_back(nodeData.nodeMap["N1"]);
+    // fakePath.push_back(nodeData.nodeMap["N2"]);
+    // fakePath.push_back(nodeData.nodeMap["N3"]);
+    // vector<Node *> path2;
+    // path2.push_back(nodeData.nodeMap["N4"]);
+    // path2.push_back(nodeData.nodeMap["N5"]);
+    // path2.push_back(nodeData.nodeMap["N8"]);
+    // path2.push_back(nodeData.nodeMap["N9"]);
+    // drones[0].setPath(fakePath);
+    // drones[1].setPath(path2);
 
     // Mở font
     const char *fontPath = "C:/Windows/Fonts/arial.ttf"; // đổi sang font bạn có
@@ -81,18 +88,27 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    // khung panel
+    SDL_Rect panelRect = {winW - 250, 0, 250, winH};
+
     bool running = true;
     SDL_Event e;
     // check click panel
     bool showPanel = false;
 
     // check click drone
-    int selectedDroneIndex = -1;
 
+    int selectedDroneIndex = -1;
+    bool noDrone = false;
+    bool runDrone = false;
+    bool isPlacingDrone = false;
     bool creatingDrone = false;
+    bool selectedNode = false;
+    bool pathInitialized = false;
     string inputText = "";
     Drone newDrone;
     SDL_StartTextInput();
+
     while (running)
     {
         while (SDL_PollEvent(&e))
@@ -105,6 +121,67 @@ int main(int argc, char *argv[])
                 int mouseX = e.button.x;
                 int mouseY = e.button.y;
                 // check click to nutmorong
+
+                SDL_Rect runDroneRect = {10, winH - imgRunDroneH - 10, imgRunDroneW, imgRunDroneH};
+                if (isInside(mouseX, mouseY, runDroneRect))
+                {
+                    runDrone = true;
+                }
+
+                SDL_Rect noDroneRect = {winW - imgNoDroneW - 90, winH - imgNoDroneH - 10, imgNoDroneW, imgNoDroneH};
+                if (isInside(mouseX, mouseY, noDroneRect))
+                {
+                    noDrone = true;
+                }
+
+                // Nếu đang ở chế độ chọn cạnh -> kiểm tra xem click có trúng cạnh nào không
+                if (noDrone)
+                {
+                    bool foundEdge = false;
+                    for (auto &edge : edges)
+                    {
+                        SDL_Point clickPoint = {mouseX, mouseY};
+                        Node *u = edge->getFrom();
+                        Node *v = edge->getTo();
+
+                        auto upos = u->getPos();
+                        auto vpos = v->getPos();
+
+                        float dist = distancePointToSegment(
+                            upos.first, upos.second,
+                            vpos.first, vpos.second,
+                            mouseX, mouseY);
+
+                        if (!SDL_PointInRect(&clickPoint, &panelRect))
+                        {
+                            if (dist < 10.0f)
+                            {                            // 10 px = ngưỡng click
+                                edge->setCost(10000000); // vô hiệu hóa bằng cost lớn
+                                edge->setActive(false);  // có thể set thêm flag để render đỏ
+                                for (auto &other : edges)
+                                {
+                                    if (other->getFrom()->getId() == v->getId() &&
+                                        other->getTo()->getId() == u->getId())
+                                    {
+                                        other->setCost(10000000);
+                                        other->setActive(false);
+                                        break;
+                                    }
+                                }
+                                updateEdgeFile("D:/SDL2-project/data/Edge.txt", edges);
+                                rebuildNeighbors(edges, nodeData.nodeMap);
+                                foundEdge = true;
+                                pathInitialized = false; // buộc nó false để runDrone ms
+                                break;
+                            }
+                        }
+                    }
+
+                    if (foundEdge)
+                    {
+                        noDrone = false; // tắt chế độ chọn cạnh sau khi disable 1 cạnh
+                    }
+                }
                 SDL_Rect formRect = {winW - imgW - 10, 10, imgW, imgH};
                 if (isInside(mouseX, mouseY, formRect))
                 {
@@ -112,11 +189,30 @@ int main(int argc, char *argv[])
                     if (!showPanel)
                         selectedDroneIndex = 0;
                 }
+                // check create drone button
+                handlePlacement(mouseX, mouseY, isPlacingDrone, panelRect, drones, winW, winH, imgDroneW, imgDroneH);
+
+                // create node
+                SDL_Rect nodeRect = {winW - imgNodeW - 50, winH - imgNodeH - 10, imgNodeW, imgNodeH};
+                if (isInside(mouseX, mouseY, nodeRect))
+                {
+                    selectedNode = true;
+                }
+                else if (selectedNode)
+                {
+                    SDL_Point clickPoint = {mouseX, mouseY};
+                    if (!SDL_PointInRect(&clickPoint, &panelRect))
+                    {
+                        addNodeAndEdges(mouseX, mouseY, nodeData, edges, "D:/SDL2-project/data/Node.txt", "D:/SDL2-project/data/Edge.txt");
+
+                        selectedNode = false;
+                    }
+                }
 
                 for (int i = 0; i < drones.size(); i++)
                 {
                     auto pos = drones[i].getPos();
-                    SDL_Rect rect = {pos.first, pos.second, 20, 20};
+                    SDL_Rect rect = {(int)pos.first, (int)pos.second, 20, 20};
                     if (isInside(mouseX, mouseY, rect))
                     {
                         selectedDroneIndex = i;
@@ -137,11 +233,12 @@ int main(int argc, char *argv[])
         SDL_RenderClear(renderer);
 
         // vẽ nút mo rong
-        SDL_Rect formReact = {winW - imgW - 10, 10, imgW, imgH};
-        SDL_RenderCopy(renderer, imgTexture, NULL, &formReact);
+        SDL_Rect formRect = {winW - imgW - 10, 10, imgW, imgH};
+        renderButtonWithHover(renderer, formRect, img1);
 
-        // Vẽ drone và ID
-        renderDrone(renderer, drones, selectedDroneIndex, font);
+        // nut dieu khien
+        SDL_Rect runDroneRect = {10, winH - imgRunDroneH - 10, imgRunDroneW, imgRunDroneH};
+        renderButtonWithHover(renderer, runDroneRect, img4);
 
         // click drone and it would show
         if (showPanel && selectedDroneIndex >= 0 && selectedDroneIndex < drones.size())
@@ -149,44 +246,66 @@ int main(int argc, char *argv[])
 
             renderInfoPanel(renderer, drones[selectedDroneIndex], font, winW, winH);
             // vẽ nút mo rong
-            SDL_Rect formReact = {winW - imgW - 10, 10, imgW, imgH};
-            SDL_RenderCopy(renderer, imgTexture, NULL, &formReact);
+            SDL_Rect formRect = {winW - imgW - 10, 10, imgW, imgH};
+            renderButtonWithHover(renderer, formRect, img1);
+
+            // vẽ button drones
+            SDL_Rect droneRect = {winW - imgDroneW - 10, winH - imgDroneH - 10, imgDroneW, imgDroneH};
+            renderButtonWithHover(renderer, droneRect, img2);
+
+            SDL_Rect nodeRect = {winW - imgNodeW - 50, winH - imgNodeH - 10, imgNodeW, imgNodeH};
+            renderButtonWithHover(renderer, nodeRect, img3);
+
+            SDL_Rect noDroneRect = {winW - imgNoDroneW - 90, winH - imgNoDroneH - 10, imgNoDroneW, imgNoDroneH};
+            renderButtonWithHover(renderer, noDroneRect, img5);
+        }
+        if (isPlacingDrone == true)
+        {
+            SDL_SetCursor(droneCursor);
+        }
+        else
+        {
+            // Khi thoát chế độ đặt drone (cancel hoặc đặt xong):
+            SDL_SetCursor(SDL_GetDefaultCursor());
         }
 
-        int thickness = 3; // số pixel độ dày
-        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-        for (auto edge : edges)
+        renderDrone(renderer, drones, selectedDroneIndex, font);
+        // render line
+        renderLine(renderer, edges, font);
+
+        // render node
+        renderNode(renderer, nodeData, font);
+        // Giải phóng khi quit
+
+        // Vẽ drone và ID
+
+        if (runDrone)
         {
-            auto fromPos = edge->getFrom()->getPos();
-            auto toPos = edge->getTo()->getPos();
-            for (int offset = -thickness / 2; offset <= thickness / 2; offset++)
+            if (!pathInitialized)
             {
-                SDL_RenderDrawLine(renderer,
-                                   fromPos.first + offset, fromPos.second,
-                                   toPos.first + offset, toPos.second);
-                SDL_RenderDrawLine(renderer,
-                                   fromPos.first, fromPos.second + offset,
-                                   toPos.first, toPos.second + offset);
+                vector<string> tasks = {"A3", "A2", "A4"};
+                Node *current = nodeData.nodeMap["A0"];
+
+                vector<Node *> fullPath;
+                fullPath.push_back(current);
+
+                for (auto &t : tasks)
+                {
+                    Node *target = nodeData.nodeMap[t];
+                    vector<Node *> subPath = dijkstra(current, target);
+
+                    if (!subPath.empty())
+                    {
+                        fullPath.insert(fullPath.end(), subPath.begin() + 1, subPath.end());
+                        current = target;
+                    }
+                }
+
+                drones[0].setPath(fullPath);
+                pathInitialized = true;
             }
-        }
 
-        for (auto node : nodeData.allNodes)
-        {
-            auto pos = node->getPos();
-            SDL_Rect node_rect = {pos.first, pos.second, 20, 20};
-
-            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // đỏ
-            SDL_RenderFillRect(renderer, &node_rect);
-
-            SDL_Color white = {255, 255, 255, 255};
-            SDL_Surface *textSurf = TTF_RenderUTF8_Blended(font, node->getId().c_str(), white);
-            SDL_Texture *textTex = SDL_CreateTextureFromSurface(renderer, textSurf);
-
-            SDL_Rect textRect = {pos.first, pos.second - 18, textSurf->w, textSurf->h};
-            SDL_RenderCopy(renderer, textTex, nullptr, &textRect);
-
-            SDL_FreeSurface(textSurf);
-            SDL_DestroyTexture(textTex);
+            drones[0].updateMove();
         }
 
         SDL_RenderPresent(renderer);
@@ -194,6 +313,8 @@ int main(int argc, char *argv[])
     }
 
     // Cleanup
+    SDL_FreeSurface(cursorSurface);
+    SDL_FreeCursor(droneCursor);
     SDL_StopTextInput();
     TTF_CloseFont(font);
     SDL_DestroyRenderer(renderer);

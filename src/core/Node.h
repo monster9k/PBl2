@@ -11,7 +11,7 @@ class Node
 {
 protected:
     string id;
-    pair<int, int> pos;
+    pair<float, float> pos;
     string type;
 
     struct Neighbor
@@ -23,20 +23,23 @@ protected:
 
 public:
     Node();
-    Node(string id, int x, int y, string type);
+    Node(string id, float x, float y, string type);
     // get
     string getId() const;
-    pair<int, int> getPos() const;
+    pair<float, float> getPos() const;
     string getType() const;
 
     // set
     void setId(string id);
-    void setPos(int x, int y);
+    void setPos(float x, float y);
     void setType(string type);
 
     // graph : (sau neu co dung)
     void addNeighbor(Node *neighbor, float cost);
     const vector<Neighbor> &getNeighbors() const;
+
+    void clearNeighbors();
+
     ~Node();
     // TODO: Thuộc tính & phương thức node
 };

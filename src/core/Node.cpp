@@ -10,7 +10,7 @@ using namespace std;
 
 Node::Node() : id(""), pos({0, 0}), type("normal") {}
 
-Node::Node(string id, int x, int y, string type)
+Node::Node(string id, float x, float y, string type)
     : id(id), pos({x, y}), type(type) {}
 
 // get
@@ -19,7 +19,7 @@ string Node::getId() const
     return this->id;
 }
 
-pair<int, int> Node::getPos() const
+pair<float, float> Node::getPos() const
 {
     return this->pos;
 }
@@ -36,7 +36,7 @@ void Node::setId(string id)
     this->id = id;
 }
 
-void Node::setPos(int x, int y)
+void Node::setPos(float x, float y)
 {
     this->pos = {x, y};
 }
@@ -49,6 +49,11 @@ void Node::setType(string type)
 void Node::addNeighbor(Node *neighbor, float cost)
 {
     neighbors.push_back({neighbor, cost});
+}
+
+void Node::clearNeighbors()
+{
+    neighbors.clear();
 }
 
 const vector<Node::Neighbor> &Node::getNeighbors() const
@@ -67,7 +72,7 @@ NodeData readAllNodeFromFile(const string &filename)
         return {};
     }
     string id, type;
-    int x, y;
+    float x, y;
 
     while (file >> id >> x >> y >> type)
     {

@@ -17,6 +17,8 @@
         "src/core/Drone.cpp",
         "src/core/Node.cpp",
         "src/core/Edge.cpp",
+        "src/core/Graph.cpp",
+        "src/algorithms/DijkstraPathFinder.cpp",
         "-lmingw32",
         "-lSDL2main",
         "-lSDL2",

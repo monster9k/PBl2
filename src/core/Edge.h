@@ -30,10 +30,11 @@ public:
     void setSpeed(float speed);
     void setActive(bool status);
 
-    pair<int, int> getFromPos() const;
-    pair<int, int> getToPos() const;
+    pair<float, float> getFromPos() const;
+    pair<float, float> getToPos() const;
 
     ~Edge();
     // TODO: Thuộc tính & phương thức cạnh
 };
 vector<Edge *> readAllEdgeFromFile(const string &filename, const unordered_map<string, Node *> &nodeMap);
+void updateEdgeFile(const string &filename, const vector<Edge *> &edges);

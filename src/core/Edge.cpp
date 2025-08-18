@@ -53,14 +53,14 @@ void Edge::setActive(bool status)
 
 // get pos from node
 
-pair<int, int> Edge::getFromPos() const
+pair<float, float> Edge::getFromPos() const
 {
-    return from ? from->getPos() : make_pair(0, 0);
+    return from ? from->getPos() : make_pair(0.0f, 0.0f);
 }
 
-pair<int, int> Edge::getToPos() const
+pair<float, float> Edge::getToPos() const
 {
-    return to ? to->getPos() : make_pair(0, 0);
+    return to ? to->getPos() : make_pair(0.0f, 0.0f);
 }
 
 Edge::~Edge() {}
@@ -98,4 +98,21 @@ vector<Edge *> readAllEdgeFromFile(
         }
     }
     return allEdges;
+}
+
+void updateEdgeFile(const string &filename, const vector<Edge *> &edges)
+{
+    ofstream out(filename);
+    if (!out.is_open())
+        return;
+
+    for (auto &e : edges)
+    {
+        out << e->getFrom()->getId() << " "
+            << e->getTo()->getId() << " "
+            << e->getCost() << " "
+            << e->getSpeed() << " "
+            << e->isActive() << "\n"; // cập nhật trạng thái
+    }
+    out.close();
 }

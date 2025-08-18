@@ -3,12 +3,12 @@
 #include "Node.h"
 #include "Edge.h"
 
-class Graph {
-public:
-    Graph();
-    ~Graph();
+float calcDistance(pair<float, float> p1, pair<float, float> p2);
 
-    // TODO: Các phương thức quản lý đồ thị
-    void addNode(const Node& node);
-    void addEdge(const Edge& edge);
-};
+void addNodeAndEdges(float mouseX, float mouseY,
+                     NodeData &nodeData,
+                     vector<Edge *> &edges,
+                     const string &nodeFile,
+                     const string &edgeFile);
+
+void rebuildNeighbors(vector<Edge *> &edges, unordered_map<string, Node *> &nodeMap);

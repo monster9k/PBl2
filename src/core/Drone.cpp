@@ -1,4 +1,5 @@
 #include "Drone.h"
+#include "Node.h"
 #include <bits/stdc++.h>
 #include <fstream>
 #include <string>
@@ -19,7 +20,7 @@ string Drone::getType() const
     return this->type;
 }
 
-pair<int, int> Drone::getPos() const
+pair<float, float> Drone::getPos() const
 {
     return this->pos;
 }
@@ -51,7 +52,7 @@ void Drone::setType(string type)
     this->type = type;
 }
 
-void Drone::setPos(int x, int y)
+void Drone::setPos(float x, float y)
 {
     pos = {x, y};
 }
@@ -69,6 +70,94 @@ void Drone::setSpeed(float speed)
 void Drone::setIsOp(string isOp)
 {
     this->isOp = isOp;
+}
+
+// Drone.cpp
+void Drone::setPath(const vector<Node *> &p)
+{
+    path = p;
+    segIndex = 0;
+    progress = 0.0f;
+    if (!path.empty())
+    {
+        pos = path[0]->getPos(); // bắt đầu tại node đầu tiên
+    }
+}
+
+void Drone::updateMove()
+{
+    if (path.empty())
+        return;
+
+    // Nếu đang giao hàng (true) và đã đến node cuối -> chuyển sang "false" (return)
+    if (isOp == "true" && segIndex >= (int)path.size() - 1)
+    {
+        isOp = "false";
+    }
+
+    pair<float, float> target;
+
+    if (isOp == "false")
+    {
+        // Bay thẳng về N1
+        target = path.front()->getPos();
+    }
+    else if (isOp == "true")
+    {
+        // Đi theo path
+        target = path[segIndex + 1]->getPos();
+    }
+    else
+    {
+        return; // Trường hợp không hợp lệ
+    }
+
+    float dx = target.first - pos.first;
+    float dy = target.second - pos.second;
+    float len = sqrt(dx * dx + dy * dy);
+    if (len < 1e-6)
+    {
+        if (isOp == "false")
+        {
+            // Về tới căn cứ -> dừng
+            pos = path.front()->getPos();
+            isOp = "false"; // vẫn giữ false (nghỉ)
+            return;
+        }
+        else if (isOp == "true")
+        {
+            segIndex++;
+            return;
+        }
+    }
+
+    // Chuẩn hóa vector
+    float step = speed * 0.1f;
+    float vx = dx / len;
+    float vy = dy / len;
+
+    // Cập nhật vị trí
+    float oldX = pos.first, oldY = pos.second;
+    pos.first += vx * step;
+    pos.second += vy * step;
+
+    // Trừ pin
+    float movedDist = sqrt((pos.first - oldX) * (pos.first - oldX) +
+                           (pos.second - oldY) * (pos.second - oldY));
+    float consumptionRate = 0.05f;
+    battery -= movedDist * consumptionRate;
+    if (battery < 0)
+        battery = 0;
+
+    // Kiểm tra tới target
+    float distToTarget = sqrt((target.first - pos.first) * (target.first - pos.first) +
+                              (target.second - pos.second) * (target.second - pos.second));
+    if (distToTarget < step)
+    {
+        pos = target;
+        if (isOp == "true")
+            segIndex++;
+    }
 }
 
 void Drone::showAllData()
@@ -94,7 +183,7 @@ vector<Drone> readDronesFromFile(const string &filename)
     }
 
     string id, type, isOp;
-    int x, y;
+    float x, y;
     float battery, speed;
 
     while (file >> id >> type >> x >> y >> battery >> speed >> isOp)
