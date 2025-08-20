@@ -35,6 +35,16 @@ float Drone::getSpeed() const
     return this->speed;
 }
 
+int Drone::geSegIndex() const
+{
+    return this->segIndex;
+}
+
+const vector<Node *> &Drone::getPath() const
+{
+    return path;
+}
+
 string Drone::getIsOpStatus() const
 {
     return this->isOp;
@@ -89,73 +99,70 @@ void Drone::updateMove()
     if (path.empty())
         return;
 
-    // Nếu đang giao hàng (true) và đã đến node cuối -> chuyển sang "false" (return)
-    if (isOp == "true" && segIndex >= (int)path.size() - 1)
-    {
-        isOp = "false";
-    }
-
     pair<float, float> target;
 
-    if (isOp == "false")
+    if (isOp == "going")
     {
-        // Bay thẳng về N1
+        // đi theo path
+        if (segIndex >= (int)path.size() - 1)
+        {
+            isOp = "returning"; // hết đường đi -> quay về
+            target = path.front()->getPos();
+        }
+        else
+        {
+            target = path[segIndex + 1]->getPos();
+        }
+    }
+    else if (isOp == "returning")
+    {
         target = path.front()->getPos();
     }
-    else if (isOp == "true")
+    else if (isOp == "idle")
     {
-        // Đi theo path
-        target = path[segIndex + 1]->getPos();
-    }
-    else
-    {
-        return; // Trường hợp không hợp lệ
+        return; // nghỉ thì không bay
     }
 
+    // --- di chuyển ---
     float dx = target.first - pos.first;
     float dy = target.second - pos.second;
     float len = sqrt(dx * dx + dy * dy);
     if (len < 1e-6)
     {
-        if (isOp == "false")
-        {
-            // Về tới căn cứ -> dừng
-            pos = path.front()->getPos();
-            isOp = "false"; // vẫn giữ false (nghỉ)
-            return;
-        }
-        else if (isOp == "true")
+        if (isOp == "going")
         {
             segIndex++;
             return;
         }
+        else if (isOp == "returning")
+        {
+            // đã về tới căn cứ
+            pos = path.front()->getPos();
+            isOp = "idle"; // nghỉ hoàn toàn
+            return;
+        }
     }
 
-    // Chuẩn hóa vector
-    float step = speed * 0.1f;
+    float step = speed;
     float vx = dx / len;
     float vy = dy / len;
 
-    // Cập nhật vị trí
     float oldX = pos.first, oldY = pos.second;
     pos.first += vx * step;
     pos.second += vy * step;
 
-    // Trừ pin
+    // tiêu hao pin
     float movedDist = sqrt((pos.first - oldX) * (pos.first - oldX) +
                            (pos.second - oldY) * (pos.second - oldY));
     float consumptionRate = 0.05f;
-    battery -= movedDist * consumptionRate;
-    if (battery < 0)
-        battery = 0;
+    battery = max(0.0f, battery - movedDist * consumptionRate);
 
-    // Kiểm tra tới target
     float distToTarget = sqrt((target.first - pos.first) * (target.first - pos.first) +
                               (target.second - pos.second) * (target.second - pos.second));
     if (distToTarget < step)
     {
         pos = target;
-        if (isOp == "true")
+        if (isOp == "going")
             segIndex++;
     }
 }

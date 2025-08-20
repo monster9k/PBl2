@@ -46,11 +46,17 @@ void renderDrone(SDL_Renderer *renderer, const vector<Drone> &drones, int select
     }
 }
 
-void renderInfoPanel(SDL_Renderer *renderer, const Drone &drone, TTF_Font *font, int screenWidth, int screenHeight)
+void renderInfoPanel(SDL_Renderer *renderer, const Drone &drone, TTF_Font *font, int winW,
+                     int winH, SDL_Texture *img1, // nút mở rộng
+                     SDL_Texture *img2,           // nút drones
+                     SDL_Texture *img3,           // nút node
+                     SDL_Texture *img5,           // nút noDrone
+                     int imgW, int imgDroneW, int imgNodeW, int imgNoDroneW,
+                     int imgH, int imgDroneH, int imgNodeH, int imgNoDroneH)
 {
 
     // Panel bên phải
-    SDL_Rect panel = {screenWidth - 250, 0, 250, screenHeight};
+    SDL_Rect panel = {winW - 250, 0, 250, winH};
 
     // Vẽ nền panel (xám)
     SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
@@ -75,7 +81,7 @@ void renderInfoPanel(SDL_Renderer *renderer, const Drone &drone, TTF_Font *font,
     {
         SDL_Surface *surf = TTF_RenderUTF8_Blended(font, line.c_str(), white);
         SDL_Texture *tex = SDL_CreateTextureFromSurface(renderer, surf);
-        SDL_Rect textRect = {screenWidth - 240, y, surf->w, surf->h};
+        SDL_Rect textRect = {winW - 240, y, surf->w, surf->h};
         SDL_RenderCopy(renderer, tex, NULL, &textRect);
 
         SDL_FreeSurface(surf);
@@ -83,6 +89,19 @@ void renderInfoPanel(SDL_Renderer *renderer, const Drone &drone, TTF_Font *font,
 
         y += 30; // cách dòng
     }
+
+    SDL_Rect formRect = {winW - imgW - 10, 10, imgW, imgH};
+    renderButtonWithHover(renderer, formRect, img1);
+
+    // vẽ button drones
+    SDL_Rect droneRect = {winW - imgDroneW - 10, winH - imgDroneH - 10, imgDroneW, imgDroneH};
+    renderButtonWithHover(renderer, droneRect, img2);
+
+    SDL_Rect nodeRect = {winW - imgNodeW - 50, winH - imgNodeH - 10, imgNodeW, imgNodeH};
+    renderButtonWithHover(renderer, nodeRect, img3);
+
+    SDL_Rect noDroneRect = {winW - imgNoDroneW - 90, winH - imgNoDroneH - 10, imgNoDroneW, imgNoDroneH};
+    renderButtonWithHover(renderer, noDroneRect, img5);
 }
 
 void renderLine(SDL_Renderer *renderer, const vector<Edge *> &edges, TTF_Font *font)

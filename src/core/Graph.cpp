@@ -22,7 +22,7 @@ void addNodeAndEdges(float mouseX, float mouseY,
                      const string &edgeFile)
 {
     // --- Tạo Node mới ---
-    string newId = "A" + to_string(nodeData.allNodes.size());
+    string newId = "N" + to_string(nodeData.allNodes.size());
     Node *newNode = new Node(newId, mouseX, mouseY, "zoneA");
 
     // Thêm vào NodeData

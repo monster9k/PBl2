@@ -23,6 +23,8 @@ public:
     string getId() const;
     string getType() const;
     pair<float, float> getPos() const;
+    const vector<Node *> &getPath() const;
+    int geSegIndex() const;
     float getBattery() const;
     float getSpeed() const;
     string getIsOpStatus() const;

@@ -16,7 +16,13 @@ bool isInside(int x, int y, SDL_Rect rect);
 
 void renderDrone(SDL_Renderer *renderer, const vector<Drone> &drones, int selectedDroneIndex, TTF_Font *font);
 
-void renderInfoPanel(SDL_Renderer *renderer, const Drone &drone, TTF_Font *font, int screenWidth, int screenHeight);
+void renderInfoPanel(SDL_Renderer *renderer, const Drone &drone, TTF_Font *font, int winW,
+                     int winH, SDL_Texture *img1, // nút mở rộng
+                     SDL_Texture *img2,           // nút drones
+                     SDL_Texture *img3,           // nút node
+                     SDL_Texture *img5,           // nút noDrone
+                     int imgW, int imgDroneW, int imgNodeW, int imgNoDroneW,
+                     int imgH, int imgDroneH, int imgNodeH, int imgNoDroneH);
 
 void renderLine(SDL_Renderer *renderer, const vector<Edge *> &edges, TTF_Font *font);
 
